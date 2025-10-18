@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from config import AppConfig
-import os
+import logging_config
 
 # Load .env file (do this BEFORE importing config)
 load_dotenv()
@@ -9,11 +9,17 @@ load_dotenv()
 # Create configuration from environment
 config = AppConfig.from_env()
 
+# Setup logging based on loaded configuration
+logger = logging_config.setup_logging(config.appLog.log_dir,
+                                      config.appLog.log_level,
+                                      config.appLog.log_to_console,
+                                      config.appLog.log_to_file,
+                                      config.appLog.max_log_file_size_mb,
+                                      config.appLog.log_backup_count,
+                                      config.appLog.log_format)
+
 if __name__ == '__main__':
-    print("Loaded CAN Configuration:")
-    print(config.can)
-
-    print("Loaded Logging Configuration:")
-    print(config.log)
-
-    print(f"App will run on {config.host}:{config.port} with debug={config.debug} and log_level={config.log_level}")
+    logger.info(config.can)
+    logger.info(config.log)
+    logger.info(config.appLog)
+    logger.info(config.flask)

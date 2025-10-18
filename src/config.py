@@ -71,7 +71,7 @@ class LogConfig:
 class AppLogConfig:
     """Application logging configuration"""
     
-    log_file_path: str = './app.log'
+    log_dir: str = './app.log'
     log_level: str = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
     log_to_console: bool = True
     log_to_file: bool = True
@@ -83,7 +83,7 @@ class AppLogConfig:
     def from_env(cls) -> 'AppLogConfig':
         """Load configuration from environment variables"""
         return cls(
-            log_file_path=os.getenv('APP_LOG_DIR', './app.log'),
+            log_dir=os.getenv('APP_LOG_DIR', './app.log'),
             log_level=os.getenv('APP_LOG_LEVEL', 'INFO').upper(),
             log_to_console=os.getenv('APP_LOG_TO_CONSOLE', 'true').lower() == 'true',
             log_to_file=os.getenv('APP_LOG_TO_FILE', 'true').lower() == 'true',
@@ -93,7 +93,7 @@ class AppLogConfig:
         )
     
     def __repr__(self) -> str:
-        return (f"AppLogConfig(log_file_path={self.log_file_path}, log_level={self.log_level}, "
+        return (f"AppLogConfig(log_dir={self.log_dir}, log_level={self.log_level}, "
                 f"log_to_console={self.log_to_console}, log_to_file={self.log_to_file}, "
                 f"max_log_file_size_mb={self.max_log_file_size_mb}, log_backup_count={self.log_backup_count}, "
                 f"log_format={self.log_format})")
@@ -173,7 +173,7 @@ class AppConfig:
                 'buffer_size': self.log.buffer_size
             },
             'appLog': {
-                'log_file_path': self.appLog.log_file_path,
+                'log_dir': self.appLog.log_dir,
                 'log_level': self.appLog.log_level,
                 'log_to_console': self.appLog.log_to_console,
                 'log_to_file': self.appLog.log_to_file,
