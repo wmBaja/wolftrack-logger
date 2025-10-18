@@ -67,6 +67,59 @@ class LogConfig:
         return (f"LogConfig(output_dir={self.output_dir}, dbc_dir={self.dbc_dir}, "
                 f"compression={self.compression})")
 
+@dataclass
+class AppLogConfig:
+    """Application logging configuration"""
+    
+    log_file_path: str = './app.log'
+    log_level: str = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    log_to_console: bool = True
+    log_to_file: bool = True
+    max_log_file_size_mb: int = 10  # Max size for log file before rotation
+    log_backup_count: int = 5  # Number of backup log files to keep
+    log_format : str = 'detailed'  # 'simple' or 'detailed'
+    
+    @classmethod
+    def from_env(cls) -> 'AppLogConfig':
+        """Load configuration from environment variables"""
+        return cls(
+            log_file_path=os.getenv('APP_LOG_DIR', './app.log'),
+            log_level=os.getenv('APP_LOG_LEVEL', 'INFO').upper(),
+            log_to_console=os.getenv('APP_LOG_TO_CONSOLE', 'true').lower() == 'true',
+            log_to_file=os.getenv('APP_LOG_TO_FILE', 'true').lower() == 'true',
+            max_log_file_size_mb=int(os.getenv('APP_LOG_MAX_FILE_SIZE_MB', '10')),
+            log_backup_count=int(os.getenv('APP_LOG_BACKUP_COUNT', '5')),
+            log_format=os.getenv('APP_LOG_FORMAT', 'detailed')
+        )
+    
+    def __repr__(self) -> str:
+        return (f"AppLogConfig(log_file_path={self.log_file_path}, log_level={self.log_level}, "
+                f"log_to_console={self.log_to_console}, log_to_file={self.log_to_file}, "
+                f"max_log_file_size_mb={self.max_log_file_size_mb}, log_backup_count={self.log_backup_count}, "
+                f"log_format={self.log_format})")
+
+@dataclass
+class FlaskConfig:
+    """Flask application configuration"""
+    
+    host: str = '0.0.0.0'
+    port: int = 5000
+    debug: bool = False # Enable/disable debug mode for Flask app 
+    enable_cors: bool = True  # Enable/disable CORS for API
+
+    @classmethod
+    def from_env(cls) -> 'FlaskConfig':
+        """Load configuration from environment variables"""
+        return cls(
+            host=os.getenv('FLASK_HOST', '0.0.0.0'),
+            port=int(os.getenv('FLASK_PORT', '5000')),
+            debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true',
+            enable_cors=os.getenv('ENABLE_CORS', 'true').lower() == 'true'
+        )
+    
+    def __repr__(self) -> str:
+        return (f"FlaskConfig(host={self.host}, port={self.port}, debug={self.debug}, "
+                f"enable_cors={self.enable_cors})")
 
 @dataclass
 class AppConfig:
@@ -74,10 +127,8 @@ class AppConfig:
     
     can: CANConfig = field(default_factory=CANConfig)
     log: LogConfig = field(default_factory=LogConfig)
-    host: str = '0.0.0.0'
-    port: int = 5000
-    debug: bool = False
-    log_level: str = 'INFO'  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    appLog: AppLogConfig = field(default_factory=AppLogConfig)
+    flask: FlaskConfig = field(default_factory=FlaskConfig)
     
     @classmethod
     def from_env(cls) -> 'AppConfig':
@@ -85,10 +136,8 @@ class AppConfig:
         return cls(
             can=CANConfig.from_env(),
             log=LogConfig.from_env(),
-            host=os.getenv('FLASK_HOST', '0.0.0.0'),
-            port=int(os.getenv('FLASK_PORT', '5000')),
-            debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true',
-            log_level=os.getenv('LOG_LEVEL', 'INFO').upper()
+            appLog=AppLogConfig.from_env(),
+            flask=FlaskConfig.from_env()
         )
     
     @classmethod
@@ -96,14 +145,14 @@ class AppConfig:
         """Load configuration from dictionary (for config files)"""
         can_config = CANConfig(**config_dict.get('can', {}))
         log_config = LogConfig(**config_dict.get('log', {}))
+        app_log_config = AppLogConfig(**config_dict.get('appLog', {}))
+        flask_config = FlaskConfig(**config_dict.get('flask', {}))
         
         return cls(
             can=can_config,
             log=log_config,
-            host=config_dict.get('host', '0.0.0.0'),
-            port=config_dict.get('port', 5000),
-            debug=config_dict.get('debug', False),
-            log_level=config_dict.get('log_level', 'INFO').upper()
+            appLog=app_log_config,
+            flask=flask_config
         )
     
     def to_dict(self) -> dict:
@@ -123,16 +172,25 @@ class AppConfig:
                 'compression': self.log.compression,
                 'buffer_size': self.log.buffer_size
             },
-            'host': self.host,
-            'port': self.port,
-            'debug': self.debug,
-            'log_level': self.log_level
+            'appLog': {
+                'log_file_path': self.appLog.log_file_path,
+                'log_level': self.appLog.log_level,
+                'log_to_console': self.appLog.log_to_console,
+                'log_to_file': self.appLog.log_to_file,
+                'max_log_file_size_mb': self.appLog.max_log_file_size_mb,
+                'log_backup_count': self.appLog.log_backup_count,
+                'log_format': self.appLog.log_format
+            },
+            'flask': {
+                'host': self.flask.host,
+                'port': self.flask.port,
+                'debug': self.flask.debug,
+                'enable_cors': self.flask.enable_cors
+            }
         }
-    
-    def __repr__(self) -> str:
-        return (f"AppConfig(host={self.host}, port={self.port}, "
-                f"debug={self.debug}, log_level={self.log_level})")
 
+    def __repr__(self) -> str:
+        return (f"AppConfig(can={self.can}, log={self.log}, appLog={self.appLog}, flask={self.flask})")
 
 # ============================================================================
 # Example Usage
@@ -145,6 +203,8 @@ if __name__ == '__main__':
     print(config)
     print(config.can)
     print(config.log)
+    print(config.appLog)
+    print(config.flask)
     print()
     
     # Load from environment
@@ -158,6 +218,9 @@ if __name__ == '__main__':
     env_config = AppConfig.from_env()
     print(env_config)
     print(env_config.can)
+    print(env_config.log)
+    print(env_config.appLog)
+    print(env_config.flask)
     print()
     
     # Convert to dictionary
