@@ -5,3 +5,15 @@ class CANConnectionException(Exception):
 class DBCLoadException(Exception):
     """Custom exception for DBC loading errors."""
     pass
+
+class FileNameValidationException(Exception):
+    """Custom exception for validation errors."""
+    pass
+
+class SessionAlreadyActiveException(Exception):
+    """Custom exception for existing session errors."""
+    pass
+
+class SessionNotActiveException(Exception):
+    """Custom exception for non-active session errors."""
+    pass

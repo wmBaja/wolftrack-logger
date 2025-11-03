@@ -38,7 +38,7 @@ class CANConfig:
 
 
 @dataclass
-class LogConfig:
+class CANLogConfig:
     """MDF4 logging configuration"""
     
     output_dir: str = './logs'
@@ -46,16 +46,18 @@ class LogConfig:
     max_file_size_mb: int = 100
     compression: int = 2  # MDF4 compression level (0=none, 1=deflate, 2=transposition+deflate)
     buffer_size: int = 10000  # Message queue size
+    default_filename_template: str = 'log_%T.mf4'  # Default log file naming template
     
     @classmethod
-    def from_env(cls) -> 'LogConfig':
+    def from_env(cls) -> 'CANLogConfig':
         """Load configuration from environment variables"""
         return cls(
             output_dir=os.getenv('LOG_OUTPUT_DIR', './logs'),
             dbc_dir=os.getenv('DBC_DIR', './dbc_files'),
             max_file_size_mb=int(os.getenv('LOG_MAX_FILE_SIZE_MB', '100')),
             compression=int(os.getenv('LOG_COMPRESSION', '2')),
-            buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000'))
+            buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000')),
+            default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.mf4')
         )
     
     def __post_init__(self):
@@ -126,7 +128,7 @@ class AppConfig:
     """Main application configuration"""
     
     can: CANConfig = field(default_factory=CANConfig)
-    log: LogConfig = field(default_factory=LogConfig)
+    log: CANLogConfig = field(default_factory=CANLogConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     flask: FlaskConfig = field(default_factory=FlaskConfig)
     
@@ -135,7 +137,7 @@ class AppConfig:
         """Load entire configuration from environment variables"""
         return cls(
             can=CANConfig.from_env(),
-            log=LogConfig.from_env(),
+            log=CANLogConfig.from_env(),
             appLog=AppLogConfig.from_env(),
             flask=FlaskConfig.from_env()
         )
@@ -144,7 +146,7 @@ class AppConfig:
     def from_dict(cls, config_dict: dict) -> 'AppConfig':
         """Load configuration from dictionary (for config files)"""
         can_config = CANConfig(**config_dict.get('can', {}))
-        log_config = LogConfig(**config_dict.get('log', {}))
+        log_config = CANLogConfig(**config_dict.get('log', {}))
         app_log_config = AppLogConfig(**config_dict.get('appLog', {}))
         flask_config = FlaskConfig(**config_dict.get('flask', {}))
         
@@ -170,7 +172,8 @@ class AppConfig:
                 'dbc_dir': self.log.dbc_dir,
                 'max_file_size_mb': self.log.max_file_size_mb,
                 'compression': self.log.compression,
-                'buffer_size': self.log.buffer_size
+                'buffer_size': self.log.buffer_size,
+                'default_file_template': self.log.default_filename_template
             },
             'appLog': {
                 'log_dir': self.appLog.log_dir,
@@ -190,7 +193,7 @@ class AppConfig:
         }
 
     def __repr__(self) -> str:
-        return (f"AppConfig(can={self.can}, log={self.log}, appLog={self.appLog}, flask={self.flask})")
+        return f"AppConfig(can={self.can}, log={self.log}, appLog={self.appLog}, flask={self.flask})"
 
 # ============================================================================
 # Example Usage
