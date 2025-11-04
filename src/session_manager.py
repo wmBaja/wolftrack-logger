@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple, List
 import time
-from threading import Lock
+from threading import Lock, Thread, Event
 
 from can_interface import CANInterface
 from dbc_manager import DBCManager
@@ -49,11 +49,11 @@ class SessionManager:
         self._output_file: Optional[Path] = None
 
         self._mf4_logger: Optional[can.Logger] = None
+        self._notifier: Optional[can.Notifier] = None
 
         self._stats_lock = Lock()
         self._stats = {
             'start_time': datetime.now(),
-            'last_message_time': None
         }
 
         logger.debug("SessionManager initialized")
@@ -74,16 +74,15 @@ class SessionManager:
 
                 with self._stats_lock:
                     self._stats = {
-                        'messages_logged': 0,
                         'start_time': datetime.now(),
-                        'last_message_time': None
                     }
-
-                self._mf4_logger.on_message_received = self.can_interface.get_message_callback()
 
                 dbc_path = None
                 if self.dbc_manager.is_loaded():
                     dbc_path = Path(self.dbc_manager.dbc_dir, f"{self.dbc_manager.dbc_name}.dbc")
+
+                if not self.can_interface.is_connected():
+                    self.can_interface.connect()
 
                 self._mf4_logger = can.Logger(
                     str(self._output_file),
@@ -92,8 +91,11 @@ class SessionManager:
                 )
                 logger.info("MF4 CAN logger started")
 
-                if not self.can_interface.is_connected():
-                    self.can_interface.connect()
+                self._notifier = can.Notifier(
+                    bus=self.can_interface.bus,
+                    listeners=[self._mf4_logger],
+                )
+                logger.debug("MF4 CAN notifier started")
 
                 self.can_interface.start_reading()
 
@@ -119,7 +121,10 @@ class SessionManager:
 
                 if self._mf4_logger:
                     self._mf4_logger.stop()
+                    self._notifier.remove_listener(self._mf4_logger)
                     logger.info("MF4 CAN logger stopped")
+
+                self._notifier.stop()
 
                 duration = (datetime.now() - self._stats['start_time']).total_seconds()
 
