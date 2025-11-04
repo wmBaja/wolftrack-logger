@@ -128,7 +128,7 @@ class AppConfig:
     """Main application configuration"""
     
     can: CANConfig = field(default_factory=CANConfig)
-    log: CANLogConfig = field(default_factory=CANLogConfig)
+    canlog: CANLogConfig = field(default_factory=CANLogConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     flask: FlaskConfig = field(default_factory=FlaskConfig)
     
@@ -137,7 +137,7 @@ class AppConfig:
         """Load entire configuration from environment variables"""
         return cls(
             can=CANConfig.from_env(),
-            log=CANLogConfig.from_env(),
+            canlog=CANLogConfig.from_env(),
             appLog=AppLogConfig.from_env(),
             flask=FlaskConfig.from_env()
         )
@@ -152,7 +152,7 @@ class AppConfig:
         
         return cls(
             can=can_config,
-            log=log_config,
+            canlog=log_config,
             appLog=app_log_config,
             flask=flask_config
         )
@@ -168,12 +168,12 @@ class AppConfig:
                 'data_bitrate': self.can.data_bitrate
             },
             'log': {
-                'output_dir': self.log.output_dir,
-                'dbc_dir': self.log.dbc_dir,
-                'max_file_size_mb': self.log.max_file_size_mb,
-                'compression': self.log.compression,
-                'buffer_size': self.log.buffer_size,
-                'default_file_template': self.log.default_filename_template
+                'output_dir': self.canlog.output_dir,
+                'dbc_dir': self.canlog.dbc_dir,
+                'max_file_size_mb': self.canlog.max_file_size_mb,
+                'compression': self.canlog.compression,
+                'buffer_size': self.canlog.buffer_size,
+                'default_file_template': self.canlog.default_filename_template
             },
             'appLog': {
                 'log_dir': self.appLog.log_dir,
@@ -193,7 +193,7 @@ class AppConfig:
         }
 
     def __repr__(self) -> str:
-        return f"AppConfig(can={self.can}, log={self.log}, appLog={self.appLog}, flask={self.flask})"
+        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask})"
 
 # ============================================================================
 # Example Usage
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     config = AppConfig()
     print(config)
     print(config.can)
-    print(config.log)
+    print(config.canlog)
     print(config.appLog)
     print(config.flask)
     print()
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     env_config = AppConfig.from_env()
     print(env_config)
     print(env_config.can)
-    print(env_config.log)
+    print(env_config.canlog)
     print(env_config.appLog)
     print(env_config.flask)
     print()
