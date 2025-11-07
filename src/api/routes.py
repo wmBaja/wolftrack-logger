@@ -14,8 +14,8 @@ dependency injection of managers and configuration.
 from flask import request, jsonify, send_file, Flask
 from pathlib import Path
 
-from src.logging_config import get_logger
-from src.utils.exceptions import (
+from logging_config import get_logger
+from utils.exceptions import (
     SessionAlreadyActiveException,
     SessionNotActiveException,
     FileNameValidationException

@@ -7,12 +7,12 @@ from dotenv import load_dotenv
 import signal
 import sys
 
-from src.config import AppConfig
-from src.logging_config import setup_logging, get_logger
-from src.can_interface import CANInterface
-from src.dbc_manager import DBCManager
-from src.session_manager import SessionManager
-from src.api.routes import register_routes
+from config import AppConfig
+from logging_config import setup_logging, get_logger
+from can_interface import CANInterface
+from dbc_manager import DBCManager
+from session_manager import SessionManager
+from api.routes import register_routes
 
 
 # Load .env file (do this BEFORE importing config)
@@ -70,7 +70,7 @@ class CANLoggerApp:
         if dbc_files:
             logger.info(f"Found {len(dbc_files)} DBC file(s)")
             # Load first DBC file found
-            success = self.dbc_manager.load_dbc(str(dbc_files[0]))
+            success = self.dbc_manager.load_dbc(str(dbc_files[0].name))
             if success:
                 logger.info(f"Loaded DBC: {self.dbc_manager.dbc_name}")
             else:
