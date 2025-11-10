@@ -84,6 +84,10 @@ class SessionManager:
                 if not self.can_interface.is_connected():
                     self.can_interface.connect()
 
+                self.can_interface.send_message(
+                    self.can_interface.config.daq_messages['wake_up']
+                )
+
                 self._mf4_logger = can.Logger(
                     str(self._output_file),
                     database=dbc_path,
@@ -146,6 +150,10 @@ class SessionManager:
                 logger.info(message)
                 logger.info(f"Output file: {self._output_file}"
                             f"File size: {file_size}"
+                )
+
+                self.can_interface.send_message(
+                    self.can_interface.config.daq_messages['standby']
                 )
 
                 return True, message

@@ -5,11 +5,11 @@ src/config.py
 Defines all configuration dataclasses and loading methods.
 """
 
+from typing import Dict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from can import Message
 import os
-
 
 @dataclass
 class CANConfig:
@@ -20,6 +20,7 @@ class CANConfig:
     bitrate: int = 500000
     fd: bool = True  # CAN-FD support
     data_bitrate: int = 2000000  # CAN-FD data phase bitrate
+    daq_messages: Dict[str, Message] = field(default_factory=dict)
     
     @classmethod
     def from_env(cls) -> 'CANConfig':
@@ -31,6 +32,13 @@ class CANConfig:
             fd=os.getenv('CAN_FD', 'true').lower() == 'true',
             data_bitrate=int(os.getenv('CAN_DATA_BITRATE', '2000000'))
         )
+    
+    def __post_init__(self):
+        if not self.daq_messages:
+            self.daq_messages = {
+                'standby': Message(arbitration_id=0x00000000, data=bytes([0x01]), is_extended_id=True),
+                'wake_up': Message(arbitration_id=0x00000000, data=bytes([0x02]), is_extended_id=True),
+            }
     
     def __repr__(self) -> str:
         return (f"CANConfig(interface={self.interface}, channel={self.channel}, "

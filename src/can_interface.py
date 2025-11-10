@@ -370,20 +370,19 @@ class CANInterface:
     # Message Sending (optional, for testing)
     # ========================================================================
     
-    def send_message(self, can_id: int, data: bytes, is_extended: bool = False) -> bool:
+    def send_message(self, msg: can.Message) -> bool:
         """
-        Send a CAN message.
+        Send a CAN message object.
         
         Args:
-            can_id: CAN identifier
-            data: Data bytes (up to 8 for CAN, 64 for CAN-FD)
-            is_extended: Whether to use extended ID
+            msg: CAN message object
         
         Returns:
             True if sent successfully
         
         Example:
-            >>> can_if.send_message(0x123, bytes([0x01, 0x02, 0x03]))
+            >>> msg = can.Message(arbitration_id=0x123, data=bytes([0x01, 0x02]))
+            >>> can_if.send_message(msg)
             True
         """
         if not self._is_connected or self.bus is None:
@@ -391,20 +390,12 @@ class CANInterface:
             return False
         
         try:
-            # Create message
-            msg = can.Message(
-                arbitration_id=can_id,
-                data=data,
-                is_extended_id=is_extended,
-                is_fd=self.config.fd
-            )
-            
             # Send message
             self.bus.send(msg)
             
             logger.debug(
-                f"CAN TX: {(can_id, is_extended)} "
-                f"[{len(data)}] {format_can_data(data)}"
+                f"CAN TX: {(msg.arbitration_id, msg.is_extended_id)} "
+                f"[{msg.dlc}] {format_can_data(msg.data)}"
             )
             
             return True
@@ -412,6 +403,9 @@ class CANInterface:
         except Exception as e:
             logger.error(f"Failed to send message: {e}", exc_info=True)
             return False
+
+    def send_message_raw(self, can_id: int, data: bytes, is_extended: bool = False) -> bool:
+        return self.send_message(can.Message(arbitration_id=can_id, data=data, is_extended_id=is_extended))
     
     # ========================================================================
     # Statistics and Monitoring

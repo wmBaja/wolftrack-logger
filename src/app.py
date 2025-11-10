@@ -114,6 +114,12 @@ class CANLoggerApp:
         logger.info("="*70)
 
         try:
+            if not self.can_interface.is_connected():
+                self.can_interface.connect()
+            self.can_interface.send_message(
+                self.can_interface.config.daq_messages['standby']
+            )
+
             self.flask_app.run(
                 host=self.config.flask.host,
                 port=self.config.flask.port,
