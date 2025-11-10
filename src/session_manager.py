@@ -123,12 +123,8 @@ class SessionManager:
 
                 self.can_interface.stop_reading()
 
-                if self._mf4_logger:
-                    self._mf4_logger.stop()
-                    self._notifier.remove_listener(self._mf4_logger)
-                    logger.info("MF4 CAN logger stopped")
-
-                self._notifier.stop()
+                if self._notifier:
+                    self._notifier.stop()
 
                 duration = (datetime.now() - self._stats['start_time']).total_seconds()
 
