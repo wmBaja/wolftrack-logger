@@ -105,7 +105,7 @@ class CANInterface:
                     bitrate=self.config.bitrate,
                     fd=self.config.fd,
                     data_bitrate=self.config.data_bitrate if self.config.fd else None,
-                    receive_own_messages=False
+                    receive_own_messages=True
                 )
                 
                 self._is_connected = True
