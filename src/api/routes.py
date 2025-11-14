@@ -373,7 +373,7 @@ def register_routes(
             if '..' in filename or '/' in filename or '\\' in filename:
                 return jsonify({'error': 'Invalid filename'}), 400
 
-            file_path = Path(log_config.output_dir) / filename
+            file_path = Path(log_config.output_dir).absolute() / filename
 
             if not file_path.exists():
                 return jsonify({'error': 'File not found'}), 404
