@@ -51,6 +51,9 @@ class CANInterface:
         self._stop_event = Event()
         self._state_lock = Lock()
         
+        # Notifier for broadcasting messages to listeners
+        self._notifier: Optional[can.Notifier] = None
+        
         # State tracking
         self._is_connected = False
         self._is_reading = False
@@ -108,6 +111,9 @@ class CANInterface:
                     receive_own_messages=True
                 )
                 
+                # Create notifier for this bus
+                self._notifier = can.Notifier(self.bus, [])
+                
                 self._is_connected = True
                 logger.info(f"Successfully connected to {self.config.channel}")
                 return True
@@ -136,6 +142,12 @@ class CANInterface:
                 logger.debug("Not connected, nothing to disconnect")
                 return
         
+            # Stop notifier
+            if self._notifier:
+                logger.debug("Stopping notifier")
+                self._notifier.stop()
+                self._notifier = None
+            
             # Close bus connection
             try:
                 if self.bus:
@@ -462,6 +474,62 @@ class CANInterface:
             self._stats['last_message_time'] = None
         
         logger.debug(f"CAN Bus {self.config.channel} Statistics reset")
+    
+    # ========================================================================
+    # Listener Management
+    # ========================================================================
+    
+    def add_listener(self, listener) -> None:
+        """
+        Add a listener to receive CAN messages.
+        
+        Args:
+            listener: Object with on_message_received(msg) method or callable
+        
+        Example:
+            >>> logger = can.Logger('output.mf4')
+            >>> can_if.add_listener(logger)
+        """
+        if not self._is_connected or self._notifier is None:
+            raise CANConnectionException("Not connected to CAN bus")
+        
+        self._notifier.add_listener(listener)
+        logger.info(f"Added listener: {type(listener).__name__}")
+    
+    def remove_listener(self, listener) -> None:
+        """
+        Remove a listener from receiving CAN messages.
+        
+        Args:
+            listener: Previously added listener object
+        
+        Example:
+            >>> can_if.remove_listener(logger)
+        """
+        if not self._is_connected or self._notifier is None:
+            logger.warning("Cannot remove listener: not connected")
+            return
+        
+        try:
+            self._notifier.remove_listener(listener)
+            logger.info(f"Removed listener: {type(listener).__name__}")
+        except ValueError:
+            logger.warning(f"Listener not found: {type(listener).__name__}")
+    
+    def get_listeners(self) -> list:
+        """
+        Get list of active listeners.
+        
+        Returns:
+            List of listener objects
+        
+        Example:
+            >>> listeners = can_if.get_listeners()
+            >>> print(f"Active listeners: {len(listeners)}")
+        """
+        if self._notifier is None:
+            return []
+        return self._notifier.listeners.copy()
     
     # ========================================================================
     # Context Manager Support

@@ -49,7 +49,6 @@ class SessionManager:
         self._output_file: Optional[Path] = None
 
         self._mf4_logger: Optional[can.Logger] = None
-        self._notifier: Optional[can.Notifier] = None
 
         self._stats_lock = Lock()
         self._stats = {
@@ -87,20 +86,24 @@ class SessionManager:
                 self.can_interface.send_message(
                     self.can_interface.config.daq_messages['wake_up']
                 )
+                logger.debug(f"Sending wake-up message: {self.can_interface.config.daq_messages['wake_up']}")
+                
+                # Small delay to ensure wake-up is processed
+                time.sleep(0.1)
 
+                # Create MF4 logger
                 self._mf4_logger = can.Logger(
                     str(self._output_file),
                     database=dbc_path,
                     compression=self.can_log_config.compression
                 )
-                logger.info("MF4 CAN logger started")
+                logger.info("MF4 CAN logger created")
 
-                self._notifier = can.Notifier(
-                    bus=self.can_interface.bus,
-                    listeners=[self._mf4_logger],
-                )
-                logger.debug("MF4 CAN notifier started")
+                # Add logger as listener to CAN interface
+                self.can_interface.add_listener(self._mf4_logger)
+                logger.debug("MF4 logger added as listener")
 
+                # Start reading messages
                 self.can_interface.start_reading()
 
                 self._is_active = True
@@ -121,10 +124,13 @@ class SessionManager:
             try:
                 logger.info(f"Stopping session: {self._session_name}")
 
-                self.can_interface.stop_reading()
+                # Remove logger from listeners
+                if self._mf4_logger:
+                    self.can_interface.remove_listener(self._mf4_logger)
+                    self._mf4_logger.stop()
+                    self._mf4_logger = None
 
-                if self._notifier:
-                    self._notifier.stop()
+                self.can_interface.stop_reading()
 
                 duration = (datetime.now() - self._stats['start_time']).total_seconds()
 
@@ -140,13 +146,12 @@ class SessionManager:
                 message = (
                     f"Session stopped. "
                     f"{messages_logged} messages "
-                    f"in {duration} seconds. "
+                    f"in {duration:.1f} seconds. "
                 )
 
                 logger.info(message)
-                logger.info(f"Output file: {self._output_file}"
-                            f"File size: {file_size}"
-                )
+                logger.info(f"Output file: {self._output_file}, "
+                            f"File size: {file_size} bytes")
 
                 self.can_interface.send_message(
                     self.can_interface.config.daq_messages['standby']
@@ -240,7 +245,9 @@ class SessionManager:
         """Cleanup after failed session start"""
         try:
             if self._mf4_logger:
+                self.can_interface.remove_listener(self._mf4_logger)
                 self._mf4_logger.stop()
+                self._mf4_logger = None
             if self._output_file and self._output_file.exists():
                 self._output_file.unlink()
             self._is_active = False
