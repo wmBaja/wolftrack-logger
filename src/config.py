@@ -36,8 +36,8 @@ class CANConfig:
     def __post_init__(self):
         if not self.daq_messages:
             self.daq_messages = {
-                'standby': Message(arbitration_id=0x00000000, data=bytes([0x01]), is_extended_id=True),
-                'wake_up': Message(arbitration_id=0x00000000, data=bytes([0x02]), is_extended_id=True),
+                'standby': Message(arbitration_id=0x00000000, data=bytes([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), is_extended_id=True),
+                'wake_up': Message(arbitration_id=0x00000000, data=bytes([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), is_extended_id=True),
             }
     
     def __repr__(self) -> str:
