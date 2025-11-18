@@ -4,7 +4,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, Tuple, List
 import time
-from threading import Lock, Thread, Event
+from threading import Lock
 
 from can_interface import CANInterface
 from dbc_manager import DBCManager
@@ -49,11 +49,9 @@ class SessionManager:
         self._output_file: Optional[Path] = None
 
         self._mf4_logger: Optional[can.Logger] = None
-
-        self._stats_lock = Lock()
-        self._stats = {
-            'start_time': datetime.now(),
-        }
+        
+        # Session statistics
+        self._start_time: Optional[datetime] = None
 
         logger.debug("SessionManager initialized")
 
@@ -71,11 +69,10 @@ class SessionManager:
                 logger.info(f"Starting session: {self._session_name}")
                 logger.info(f"Output file: {self._output_file}")
 
-                with self._stats_lock:
-                    self._stats = {
-                        'start_time': datetime.now(),
-                    }
+                # Reset statistics
+                self._start_time = datetime.now()
 
+                # Get DBC path if loaded
                 dbc_path = None
                 if self.dbc_manager.is_loaded():
                     dbc_path = Path(self.dbc_manager.dbc_dir, f"{self.dbc_manager.dbc_name}.dbc")
@@ -103,9 +100,6 @@ class SessionManager:
                 self.can_interface.add_listener(self._mf4_logger)
                 logger.debug("MF4 logger added as listener")
 
-                # Start reading messages
-                self.can_interface.start_reading()
-
                 self._is_active = True
 
                 logger.info("Session started successfully")
@@ -124,29 +118,26 @@ class SessionManager:
             try:
                 logger.info(f"Stopping session: {self._session_name}")
 
-                # Remove logger from listeners
+                # Remove logger from listeners and stop it
                 if self._mf4_logger:
                     self.can_interface.remove_listener(self._mf4_logger)
                     self._mf4_logger.stop()
                     self._mf4_logger = None
 
-                self.can_interface.stop_reading()
+                # Calculate duration
+                duration = (datetime.now() - self._start_time).total_seconds() if self._start_time else 0
 
-                duration = (datetime.now() - self._stats['start_time']).total_seconds()
-
+                # Get file size
                 file_size = 0
                 if self._output_file and self._output_file.exists():
                     file_size = self._output_file.stat().st_size
 
                 self._is_active = False
 
-                can_stats = self.can_interface.get_stats()
-                messages_logged = can_stats['messages_read']
-
                 message = (
-                    f"Session stopped. "
-                    f"{messages_logged} messages "
-                    f"in {duration:.1f} seconds. "
+                    f"Session stopped: {self._session_name}. "
+                    f"Duration: {duration:.1f}s, "
+                    f"File size: {file_size:,} bytes"
                 )
 
                 logger.info(message)
@@ -167,11 +158,15 @@ class SessionManager:
         return self._is_active
 
     def get_status(self) -> Dict[str, Any]:
-        can_stats = self.can_interface.get_stats()
-
+        """
+        Get current session status and statistics.
+        
+        Returns:
+            Dictionary containing session status and stats
+        """
         uptime = 0.0
-        if self._is_active:
-            uptime = (datetime.now() - self._stats['start_time']).total_seconds()
+        if self._is_active and self._start_time:
+            uptime = (datetime.now() - self._start_time).total_seconds()
 
         file_size = 0
         if self._output_file and self._output_file.exists():
@@ -180,23 +175,17 @@ class SessionManager:
         status = {
             'is_active': self._is_active,
             'session_name': self._session_name,
-            'output_file': str(self._output_file),
-            'start_time': self._stats['start_time'].isoformat() if self._is_active else None,
+            'output_file': str(self._output_file) if self._output_file else None,
+            'start_time': self._start_time.isoformat() if self._start_time else None,
             'uptime_seconds': uptime,
-            'messages_logged': can_stats['messages_read'],
-            'messages_dropped': can_stats['messages_dropped'],
-            'read_errors': can_stats['read_errors'],
             'file_size_bytes': file_size,
+            'can_connected': self.can_interface.is_connected(),
             'can_channel': self.can_interface.config.channel,
             'can_bitrate': self.can_interface.config.bitrate,
             'dbc_loaded': self.dbc_manager.is_loaded(),
             'dbc_name': self.dbc_manager.dbc_name if self.dbc_manager.is_loaded() else None,
+            'active_listeners': len(self.can_interface.get_listeners())
         }
-
-        if uptime > 0:
-            status['messages_per_second'] = can_stats['messages_read'] / uptime
-        else:
-            status['messages_per_second'] = 0.0
 
         return status
 
@@ -251,40 +240,58 @@ class SessionManager:
             if self._output_file and self._output_file.exists():
                 self._output_file.unlink()
             self._is_active = False
+            self._start_time = None
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
 
 if __name__ == '__main__':
-    from logging_config import setup_test_logger
-    from src.config import CANConfig, CANLogConfig
+    from logging_config import setup_logging
+    from config import CANConfig, CANLogConfig
 
-    logger = setup_test_logger()
+    # Setup logging
+    setup_logging(
+        log_dir='./app_logs',
+        log_level='DEBUG',
+        console_output=True,
+        log_to_file=True,
+        max_file_size_mb=10,
+        backup_count=5,
+        format_style='detailed'
+    )
 
     print("=== Session Manager Test ===\n")
 
     # Create components
-    can_config = CANConfig(interface='virtual', channel='vcan0')  # Use vcan0 for testing
+    can_config = CANConfig(interface='virtual', channel='vcan0')
     log_config = CANLogConfig()
 
     can_interface = CANInterface(can_config)
-    dbc_manager = DBCManager(log_config.dbc_dir)  # Not used for logging, just reference
+    dbc_manager = DBCManager(log_config.dbc_dir)
     session_manager = SessionManager(can_interface, dbc_manager, log_config)
 
-    dbc_manager.load_dbc('motohawk.dbc')
+    # Load DBC if available
+    try:
+        dbc_manager.load_dbc('motohawk.dbc')
+    except:
+        print("No DBC loaded (optional)")
+
     try:
         # Start session
         print("Starting session...")
         success, msg = session_manager.start('test_session_%T')
         print(f"✓ {msg}\n")
 
-        # Let it run for 10 seconds
+        # Monitor for 10 seconds
         print("Logging for 10 seconds...")
         for i in range(10):
             time.sleep(1)
             status = session_manager.get_status()
-            print(f"  [{i+1}s] Messages: {status['messages_logged']}, "
-                  f"File: {status['file_size_bytes']}, "
-                  f"Rate: {status['messages_per_second']:.1f} msg/s")
+            print(f"  [{i+1}s] File: {status['file_size_bytes']:,} bytes, "
+                  f"Listeners: {status['active_listeners']}")
+            
+            # Send some test messages
+            if i % 2 == 0:
+                can_interface.send_message_raw(0x123, bytes([i, 0x11, 0x22, 0x33]))
 
         # Stop session
         print("\nStopping session...")
@@ -299,5 +306,8 @@ if __name__ == '__main__':
         print(f"✗ Error: {e}")
         import traceback
         traceback.print_exc()
+    
+    finally:
+        can_interface.disconnect()
 
     print("\n✓ Done")
