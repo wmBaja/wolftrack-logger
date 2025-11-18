@@ -39,16 +39,16 @@ BU_:
 BO_ 2147516416 Engine: 4 Vector__XXX
  SG_ RPM : 0|32@1- (1,0) [0|0] "rpm" Vector__XXX
 
-BO_ 2183135233 RF_TieRod: 4 Vector__XXX
+BO_ 2183135233 FR_TieRod: 4 Vector__XXX
  SG_ Strain : 0|32@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 2218795008 LF_Suspension: 4 Vector__XXX
+BO_ 2218795008 FL_Suspension: 4 Vector__XXX
  SG_ Displacement : 0|32@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 2183135232 RF_Suspension: 4 Vector__XXX
+BO_ 2183135232 FR_Suspension: 4 Vector__XXX
  SG_ Displacement : 0|32@1- (1,0) [0|0] "" Vector__XXX
 
-BO_ 2218795009 LF_TieRod: 4 Vector__XXX
+BO_ 2218795009 FL_TieRod: 4 Vector__XXX
  SG_ Strain : 0|32@1- (1,0) [0|0] "" Vector__XXX
 
 BO_ 2147516417 WheelSpeed: 4 Vector__XXX
