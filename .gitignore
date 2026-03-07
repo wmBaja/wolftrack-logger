@@ -209,3 +209,7 @@ __marimo__/
 # IDEs
 .vscode/
 .idea/
+
+# CAN Logs
+logs/
+*.mf4

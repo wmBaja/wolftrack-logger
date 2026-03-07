@@ -5,11 +5,11 @@ src/config.py
 Defines all configuration dataclasses and loading methods.
 """
 
+from typing import Dict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from can import Message
 import os
-
 
 @dataclass
 class CANConfig:
@@ -20,6 +20,7 @@ class CANConfig:
     bitrate: int = 500000
     fd: bool = True  # CAN-FD support
     data_bitrate: int = 2000000  # CAN-FD data phase bitrate
+    daq_messages: Dict[str, Message] = field(default_factory=dict)
     
     @classmethod
     def from_env(cls) -> 'CANConfig':
@@ -32,13 +33,20 @@ class CANConfig:
             data_bitrate=int(os.getenv('CAN_DATA_BITRATE', '2000000'))
         )
     
+    def __post_init__(self):
+        if not self.daq_messages:
+            self.daq_messages = {
+                'standby': Message(arbitration_id=0x00000000, data=bytes([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), is_extended_id=True),
+                'wake_up': Message(arbitration_id=0x00000000, data=bytes([0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), is_extended_id=True),
+            }
+    
     def __repr__(self) -> str:
         return (f"CANConfig(interface={self.interface}, channel={self.channel}, "
                 f"bitrate={self.bitrate}, fd={self.fd}, data_bitrate={self.data_bitrate})")
 
 
 @dataclass
-class LogConfig:
+class CANLogConfig:
     """MDF4 logging configuration"""
     
     output_dir: str = './logs'
@@ -46,16 +54,18 @@ class LogConfig:
     max_file_size_mb: int = 100
     compression: int = 2  # MDF4 compression level (0=none, 1=deflate, 2=transposition+deflate)
     buffer_size: int = 10000  # Message queue size
+    default_filename_template: str = 'log_%T.mf4'  # Default log file naming template
     
     @classmethod
-    def from_env(cls) -> 'LogConfig':
+    def from_env(cls) -> 'CANLogConfig':
         """Load configuration from environment variables"""
         return cls(
             output_dir=os.getenv('LOG_OUTPUT_DIR', './logs'),
             dbc_dir=os.getenv('DBC_DIR', './dbc_files'),
             max_file_size_mb=int(os.getenv('LOG_MAX_FILE_SIZE_MB', '100')),
             compression=int(os.getenv('LOG_COMPRESSION', '2')),
-            buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000'))
+            buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000')),
+            default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.mf4')
         )
     
     def __post_init__(self):
@@ -126,7 +136,7 @@ class AppConfig:
     """Main application configuration"""
     
     can: CANConfig = field(default_factory=CANConfig)
-    log: LogConfig = field(default_factory=LogConfig)
+    canlog: CANLogConfig = field(default_factory=CANLogConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     flask: FlaskConfig = field(default_factory=FlaskConfig)
     
@@ -135,7 +145,7 @@ class AppConfig:
         """Load entire configuration from environment variables"""
         return cls(
             can=CANConfig.from_env(),
-            log=LogConfig.from_env(),
+            canlog=CANLogConfig.from_env(),
             appLog=AppLogConfig.from_env(),
             flask=FlaskConfig.from_env()
         )
@@ -144,13 +154,13 @@ class AppConfig:
     def from_dict(cls, config_dict: dict) -> 'AppConfig':
         """Load configuration from dictionary (for config files)"""
         can_config = CANConfig(**config_dict.get('can', {}))
-        log_config = LogConfig(**config_dict.get('log', {}))
+        log_config = CANLogConfig(**config_dict.get('log', {}))
         app_log_config = AppLogConfig(**config_dict.get('appLog', {}))
         flask_config = FlaskConfig(**config_dict.get('flask', {}))
         
         return cls(
             can=can_config,
-            log=log_config,
+            canlog=log_config,
             appLog=app_log_config,
             flask=flask_config
         )
@@ -166,11 +176,12 @@ class AppConfig:
                 'data_bitrate': self.can.data_bitrate
             },
             'log': {
-                'output_dir': self.log.output_dir,
-                'dbc_dir': self.log.dbc_dir,
-                'max_file_size_mb': self.log.max_file_size_mb,
-                'compression': self.log.compression,
-                'buffer_size': self.log.buffer_size
+                'output_dir': self.canlog.output_dir,
+                'dbc_dir': self.canlog.dbc_dir,
+                'max_file_size_mb': self.canlog.max_file_size_mb,
+                'compression': self.canlog.compression,
+                'buffer_size': self.canlog.buffer_size,
+                'default_file_template': self.canlog.default_filename_template
             },
             'appLog': {
                 'log_dir': self.appLog.log_dir,
@@ -190,7 +201,7 @@ class AppConfig:
         }
 
     def __repr__(self) -> str:
-        return (f"AppConfig(can={self.can}, log={self.log}, appLog={self.appLog}, flask={self.flask})")
+        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask})"
 
 # ============================================================================
 # Example Usage
@@ -202,7 +213,7 @@ if __name__ == '__main__':
     config = AppConfig()
     print(config)
     print(config.can)
-    print(config.log)
+    print(config.canlog)
     print(config.appLog)
     print(config.flask)
     print()
@@ -218,7 +229,7 @@ if __name__ == '__main__':
     env_config = AppConfig.from_env()
     print(env_config)
     print(env_config.can)
-    print(env_config.log)
+    print(env_config.canlog)
     print(env_config.appLog)
     print(env_config.flask)
     print()

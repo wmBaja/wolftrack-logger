@@ -156,6 +156,17 @@ def get_logger(name: str) -> logging.Logger:
     """
     return logging.getLogger(name)
 
+def setup_test_logger() -> logging.Logger:
+    return setup_logging(
+        log_dir='./app_logs',
+        log_level='DEBUG',
+        console_output=True,
+        log_to_file=True,
+        max_file_size_mb=10000,
+        backup_count=5,
+        format_style='detailed'
+    )
+
 
 def set_level(logger_name: str, level: str):
     """
