@@ -47,14 +47,14 @@ class CANConfig:
 
 @dataclass
 class CANLogConfig:
-    """MDF4 logging configuration"""
+    """Logging configuration"""
     
     output_dir: str = './logs'
     dbc_dir: str = './dbc'
     max_file_size_mb: int = 100
-    compression: int = 2  # MDF4 compression level (0=none, 1=deflate, 2=transposition+deflate)
+    compression: int = 2  # Log compression level (0=none, 1=deflate, 2=transposition+deflate)
     buffer_size: int = 10000  # Message queue size
-    default_filename_template: str = 'log_%T.mf4'  # Default log file naming template
+    default_filename_template: str = 'log_%T.blf'  # Default log file naming template
     
     @classmethod
     def from_env(cls) -> 'CANLogConfig':
@@ -65,7 +65,7 @@ class CANLogConfig:
             max_file_size_mb=int(os.getenv('LOG_MAX_FILE_SIZE_MB', '100')),
             compression=int(os.getenv('LOG_COMPRESSION', '2')),
             buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000')),
-            default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.mf4')
+            default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.blf')
         )
     
     def __post_init__(self):

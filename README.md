@@ -1,6 +1,6 @@
 # Wolftrack-logger
 
-Python Flask backend for logging CAN bus data from the Waveshare CANFD HAT to MDF4 files with DBC signal decoding.
+Python Flask backend for logging CAN bus data from the Waveshare CANFD HAT to log files with DBC signal decoding.
 
 ## Quick Start
 
@@ -59,12 +59,11 @@ can_logger_backend/
 │   ├── config.py              # Configuration
 │   ├── dbc_manager.py         # DBC file management
 │   ├── logging_config.py      # Logging setup
-│   ├── mdf_writer.py          # MDF4 file writer
 │   ├── session_manager.py     # Session orchestration
 │   └── utils.py               # Utilities & exceptions
 ├── tests/                     # Unit tests
 ├── dbc_files/                 # DBC database files
-├── logs/                      # MDF4 output files
+├── logs/                      # Log output files
 ├── app_logs/                  # Application logs
 ├── requirements.txt           # Python dependencies
 └── README.md                  # This file
@@ -76,7 +75,7 @@ can_logger_backend/
 
 ### Core Libraries
 - **python-can** - CAN bus interface
-- **asammdf** - MDF4 file creation
+- **asammdf** - Log file creation
 - **cantools** - DBC parsing and decoding
 - **flask** - REST API framework
 - **flask-cors** - CORS support
