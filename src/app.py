@@ -85,6 +85,18 @@ class CANLoggerApp:
             self.config.canlog
         )
 
+        # ZMQ Live Stream Listener
+        try:
+            from stream_listener import ZmqStreamListener
+            self.stream_listener = ZmqStreamListener(port=5555)
+            logger.info("ZMQ stream listener initialized (waiting for CAN connection)")
+        except ImportError:
+            logger.error("pyzmq is not installed. Run `uv add pyzmq` to enable live streaming.")
+            self.stream_listener = None
+        except Exception as e:
+            logger.error(f"Failed to initialize ZMQ stream listener: {e}")
+            self.stream_listener = None
+
         # Flask App
         self.flask_app = Flask(__name__)
         CORS(self.flask_app)
@@ -116,6 +128,12 @@ class CANLoggerApp:
         try:
             if not self.can_interface.is_connected():
                 self.can_interface.connect()
+            
+            # Attach the ZMQ listener now that CAN is connected
+            if getattr(self, 'stream_listener', None):
+                self.can_interface.add_listener(self.stream_listener)
+                logger.info("ZMQ stream listener attached to active CAN interface")
+
             self.can_interface.send_message(
                 self.can_interface.config.daq_messages['standby']
             )
@@ -143,6 +161,11 @@ class CANLoggerApp:
             if self.session_manager.is_active():
                 logger.info("Stopping active session...")
                 self.session_manager.stop()
+
+            # Stop the ZMQ stream
+            if hasattr(self, 'stream_listener') and self.stream_listener:
+                logger.info("Stopping ZMQ stream...")
+                self.stream_listener.stop()
 
             # Disconnect CAN interface
             if self.can_interface.is_connected():
