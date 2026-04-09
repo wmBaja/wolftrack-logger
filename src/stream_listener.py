@@ -19,7 +19,6 @@ class ZmqStreamListener(can.Listener):
         logger.info(f"ZmqStreamListener bound to {addr}")
         
     def on_message_received(self, msg: can.Message):
-        """Called automatically by can.Notifier for every message received."""
         try:
             # Publish RAW CAN message frame
             payload = {

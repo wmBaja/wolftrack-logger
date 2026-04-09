@@ -86,16 +86,20 @@ class CANLoggerApp:
         )
 
         # ZMQ Live Stream Listener
-        try:
-            from stream_listener import ZmqStreamListener
-            self.stream_listener = ZmqStreamListener(port=5555)
-            logger.info("ZMQ stream listener initialized (waiting for CAN connection)")
-        except ImportError:
-            logger.error("pyzmq is not installed. Run `uv add pyzmq` to enable live streaming.")
+        if self.config.zmq.enabled:
+            try:
+                from stream_listener import ZmqStreamListener
+                self.stream_listener = ZmqStreamListener(port=self.config.zmq.port)
+                logger.info(f"ZMQ stream listener initialized on port {self.config.zmq.port} (waiting for CAN connection)")
+            except ImportError:
+                logger.error("pyzmq is not installed. Run `uv add pyzmq` to enable live streaming.")
+                self.stream_listener = None
+            except Exception as e:
+                logger.error(f"Failed to initialize ZMQ stream listener: {e}")
+                self.stream_listener = None
+        else:
             self.stream_listener = None
-        except Exception as e:
-            logger.error(f"Failed to initialize ZMQ stream listener: {e}")
-            self.stream_listener = None
+            logger.info("ZMQ stream listener is disabled in config")
 
         # Flask App
         self.flask_app = Flask(__name__)
