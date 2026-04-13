@@ -1,0 +1,19 @@
+[project]
+name = "wolftrack-logger"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "asammdf>=8.6.10",
+    "cantools>=40.7.1",
+    "flask>=3.1.2",
+    "flask-cors>=6.0.1",
+    "python-can>=4.6.1",
+    "python-dotenv>=1.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

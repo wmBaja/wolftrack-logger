@@ -48,7 +48,7 @@ class SessionManager:
         self._session_name: Optional[str] = None
         self._output_file: Optional[Path] = None
 
-        self._mf4_logger: Optional[can.Logger] = None
+        self._logger: Optional[can.Logger] = None
         
         # Session statistics
         self._start_time: Optional[datetime] = None
@@ -62,7 +62,7 @@ class SessionManager:
 
             try:
                 self._session_name = self._generate_session_name(filename_template)
-                self._output_file = Path(self.can_log_config.output_dir) / f"{self._session_name}.mf4"
+                self._output_file = Path(self.can_log_config.output_dir) / f"{self._session_name}.blf"
 
                 self._output_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -88,17 +88,16 @@ class SessionManager:
                 # Small delay to ensure wake-up is processed
                 time.sleep(0.1)
 
-                # Create MF4 logger
-                self._mf4_logger = can.Logger(
+                # Create logger
+                self._logger = can.Logger(
                     str(self._output_file),
-                    database=dbc_path,
                     compression=self.can_log_config.compression
                 )
-                logger.info("MF4 CAN logger created")
+                logger.info("CAN logger created")
 
                 # Add logger as listener to CAN interface
-                self.can_interface.add_listener(self._mf4_logger)
-                logger.debug("MF4 logger added as listener")
+                self.can_interface.add_listener(self._logger)
+                logger.debug("Logger added as listener")
 
                 self._is_active = True
 
@@ -119,10 +118,10 @@ class SessionManager:
                 logger.info(f"Stopping session: {self._session_name}")
 
                 # Remove logger from listeners and stop it
-                if self._mf4_logger:
-                    self.can_interface.remove_listener(self._mf4_logger)
-                    self._mf4_logger.stop()
-                    self._mf4_logger = None
+                if self._logger:
+                    self.can_interface.remove_listener(self._logger)
+                    self._logger.stop()
+                    self._logger = None
 
                 # Calculate duration
                 duration = (datetime.now() - self._start_time).total_seconds() if self._start_time else 0
@@ -216,8 +215,8 @@ class SessionManager:
         for placeholder, value in replacements.items():
             session_name = session_name.replace(placeholder, value)
 
-        # Remove .mf4 extension if present (we'll add it when creating the file)
-        if session_name.endswith('.mf4'):
+        # Remove .blf extension if present (we'll add it when creating the file)
+        if session_name.endswith('.blf'):
             session_name = session_name[:-4]
 
         return session_name
@@ -227,16 +226,16 @@ class SessionManager:
         if not output_dir.exists():
             return 0
 
-        existing = list(output_dir.glob('*.mf4'))
+        existing = list(output_dir.glob('*.blf'))
         return len(existing)
 
     def _cleanup_failed_start(self) -> None:
         """Cleanup after failed session start"""
         try:
-            if self._mf4_logger:
-                self.can_interface.remove_listener(self._mf4_logger)
-                self._mf4_logger.stop()
-                self._mf4_logger = None
+            if self._logger:
+                self.can_interface.remove_listener(self._logger)
+                self._logger.stop()
+                self._logger = None
             if self._output_file and self._output_file.exists():
                 self._output_file.unlink()
             self._is_active = False

@@ -26,7 +26,7 @@ class CANInterface:
         >>> config = CANConfig(channel='can0', bitrate=500000)
         >>> can_if = CANInterface(config)
         >>> can_if.connect()
-        >>> logger = can.Logger('output.mf4')
+        >>> logger = can.Logger('output.blf')
         >>> can_if.add_listener(logger)
         >>> # Messages are now automatically logged
         >>> can_if.remove_listener(logger)
@@ -239,7 +239,7 @@ class CANInterface:
             CANConnectionException: If not connected to bus
         
         Example:
-            >>> logger = can.Logger('output.mf4')
+            >>> logger = can.Logger('output.blf')
             >>> can_if.add_listener(logger)
         """
         if not self._is_connected or self._notifier is None:

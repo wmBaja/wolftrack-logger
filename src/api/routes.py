@@ -173,7 +173,7 @@ def register_routes(
             JSON response with session information:
             - is_active: boolean indicating if session is running
             - session_name: name of the current session
-            - output_file: path to the output MF4 file
+            - output_file: path to the output log file
             - start_time: ISO formatted start timestamp
             - uptime_seconds: session duration in seconds
             - file_size_bytes: current output file size
@@ -304,7 +304,7 @@ def register_routes(
     @app.route('/api/logs', methods=['GET'])
     def list_logs():
         """
-        List all MF4 log files in the output directory.
+        List all log files in the output directory.
         
         Returns:
             JSON response with list of log files:
@@ -327,7 +327,7 @@ def register_routes(
                 return jsonify({'files': []}), 200
 
             files = []
-            for file_path in log_dir.glob('*.mf4'):
+            for file_path in list(log_dir.glob('*.blf')) + list(log_dir.glob('*.log')):
                 stat = file_path.stat()
                 files.append({
                     'name': file_path.name,
@@ -348,7 +348,7 @@ def register_routes(
     @app.route('/api/logs/<filename>', methods=['GET'])
     def download_log(filename: str):
         """
-        Download a specific MF4 log file.
+        Download a specific log file.
         
         Args:
             filename: Name of the log file to download
@@ -387,7 +387,7 @@ def register_routes(
     @app.route('/api/logs/<filename>', methods=['DELETE'])
     def delete_log(filename: str):
         """
-        Delete a specific MF4 log file.
+        Delete a specific log file.
         
         Args:
             filename: Name of the log file to delete

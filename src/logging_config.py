@@ -304,7 +304,7 @@ if __name__ == '__main__':
     mock_msg = MockCANMessage()
     structured.log_can_message(mock_msg)
     structured.log_session_event('START', session_name='test_drive', user='admin')
-    structured.log_performance('mdf_write', 45.67, file_size_mb=12.3, signal_count=150)
+    structured.log_performance('log_write', 45.67, file_size_mb=12.3, signal_count=150)
     structured.log_dbc_event('LOADED', filename='vehicle.dbc', message_count=245)
     
     print("\n=== Testing Module-Specific Logging ===\n")
