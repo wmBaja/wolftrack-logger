@@ -1,93 +1,100 @@
-# Wolftrack-logger
+# Wolftrack Logger
 
-Python Flask backend for logging CAN bus data from the Waveshare CANFD HAT to log files with DBC signal decoding.
+Python Flask backend for logging CAN bus data from the Waveshare CANFD HAT to log files
 
-## Quick Start
+## Local Development (With `uv`)
 
-- **Python**: 3.7 or higher
+This project uses `uv` for dependency management and environment isolation.
 
-### Installation
+### Prerequisites
+- Install `uv`: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+### Setup
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/wmBaja/wolftrack-logger.git
 cd wolftrack-logger
 
-# Create virtual environment
-python -m venv venv
-```
-Make sure to activate the venv before proceeding
-```
-# Install dependencies
-pip install -r requirements.txt
+# Sync dependencies and create the virtual environment
+uv sync
 
-# For development (includes testing tools)
-pip install -r requirements-dev.txt
+# Run the application locally
+uv run src/app.py
 ```
 
-## Testing
-
-### Run All Tests
+### Testing
+Currently testing is not enforced and coverage is low. But if you want to run tests:
 
 ```bash
-pytest
+# Run all tests
+uv run pytest
+
+# Run with coverage
+uv run pytest --cov=src --cov-report=html
 ```
 
-### Run Specific Test File
-
-```bash
-pytest tests/test_can_interface.py -v
-```
-
-### Run with Coverage
-
-```bash
-pytest --cov=src --cov-report=html
-# Open htmlcov/index.html in browser
-```
 ---
+
+## Raspberry Pi Deployment
+
+We have built a automated deployment system to install and update `wolftrack-logger` on a Raspberry Pi 4 equipped with a Waveshare CAN-FD HAT and a DS3231 RTC.
+
+### 1. Initial Setup (Fresh Pi)
+1. Flash your Raspberry Pi with the latest OS (Trixie or Bookworm) and connect it to your home internet.
+2. From your **host computer** (Windows/Mac/Linux), open a terminal in this project directory and run:
+   ```bash
+   python scripts/deploy.py pi@<pi-ip-address> --setup
+   ```
+   *The script will securely transfer the codebase to the Pi, install all system packages, configure the CAN/RTC boot overlays, create the systemd service, and finally convert the Pi into an offline Access Point named `Wolftrack`.*
+
+### 2. Pushing Updates (Offline)
+1. Connect your host computer to the `Wolftrack` Wi-Fi network broadcasted by the Pi.
+2. Make your code changes locally.
+3. Run the deploy script *without* the setup flag:
+   ```bash
+   python scripts/deploy.py pi@10.42.0.1
+   ```
+   *This uses standard tools to push only the updated code over the local network and restart the logger service instantly. No internet connection is needed.*
+
+---
+
+## Raspberry Pi Network Management
+
+Once the Pi is deployed, it acts as an offline Access Point. If you need to switch it back to the internet (e.g., to install a system update via `apt`), you can use the provided utility scripts directly on the Pi over SSH:
+
+- **Switch to Client (Internet):**
+  ```bash
+  sudo ./scripts/switch_to_client.sh "YourHomeSSID" "YourPassword"
+  ```
+  *(If you omit the SSID/Password, it will simply turn off the AP and attempt to auto-connect to any known saved networks).*
+
+- **Switch to Access Point:**
+  ```bash
+  sudo ./scripts/switch_to_ap.sh
+  ```
+
+---
+
 ## Project Structure
 
 ```
-can_logger_backend/
+wolftrack-logger/
 ├── src/
-│   ├── api/
-│   │   ├── routes.py          # Flask API endpoints
-│   │   └── responses.py       # Response helpers
-│   ├── app.py                 # Application entry point
-│   ├── can_interface.py       # CAN bus interface
-│   ├── config.py              # Configuration
-│   ├── dbc_manager.py         # DBC file management
-│   ├── logging_config.py      # Logging setup
-│   ├── session_manager.py     # Session orchestration
-│   └── utils.py               # Utilities & exceptions
-├── tests/                     # Unit tests
-├── dbc_files/                 # DBC database files
-├── logs/                      # Log output files
-├── app_logs/                  # Application logs
-├── requirements.txt           # Python dependencies
-└── README.md                  # This file
+│   ├── api/               # Flask API endpoints
+│   ├── app.py             # Application entry point
+│   ├── can_interface.py   # CAN bus interface
+│   ├── config.py          # Configuration
+│   ├── dbc_manager.py     # DBC file management
+│   ├── logging_config.py  # Logging setup
+│   ├── session_manager.py # Session orchestration
+│   └── utils/             # Utilities & helpers
+├── scripts/               # Deployment and network management scripts
+│   ├── deploy.py          # Cross-platform deployment script
+│   ├── setup_pi.sh        # Initial Pi setup script
+│   ├── bring_can_up.sh    # Dynamic CAN interface configuration
+│   └── switch_to_*.sh     # Network toggling scripts
+├── tests/                 # Unit tests
+├── pyproject.toml         # Project dependencies (uv)
+└── .env.example           # Environment variable templates
 ```
-
----
-
-## Dependencies
-
-### Core Libraries
-- **python-can** - CAN bus interface
-- **asammdf** - Log file creation
-- **cantools** - DBC parsing and decoding
-- **flask** - REST API framework
-- **flask-cors** - CORS support
-
-### Development
-- **pytest** - Testing framework
-- **pytest-cov** - Coverage reporting
-- **pytest-mock** - Mocking utilities
-
-## Contributing
-
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
