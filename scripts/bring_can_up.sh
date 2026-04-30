@@ -1,0 +1,53 @@
+#!/bin/bash
+# Sources the .env file and configures the CAN interfaces accordingly
+
+# Find the project root (parent of the scripts directory)
+WORKING_DIR="$(dirname "$(dirname "$(readlink -f "$0")")")"
+ENV_FILE="$WORKING_DIR/.env"
+
+# Default values
+BITRATE=1000000
+FD_ON=false
+DBITRATE=2000000
+
+if [ -f "$ENV_FILE" ]; then
+    # Source .env, ignoring comments and empty lines
+    set -a
+    source <(grep -v '^[[:space:]]*#' "$ENV_FILE" | grep -v '^[[:space:]]*$')
+    set +a
+fi
+
+# Override with environment variables if set
+BITRATE=${CAN_BITRATE:-$BITRATE}
+FD_ON=${CAN_FD:-$FD_ON}
+DBITRATE=${CAN_DATA_BITRATE:-$DBITRATE}
+
+setup_can() {
+    local IFACE=$1
+    
+    # Check if interface exists before trying to configure
+    if ! ip link show $IFACE > /dev/null 2>&1; then
+        return 1
+    fi
+
+    # Bring interface down first to allow configuration changes
+    ip link set $IFACE down 2>/dev/null || true
+    
+    # Configure bitrate and FD modes
+    # Ensure variables are treated as lowercase strings for comparison
+    if [ "${FD_ON,,}" = "true" ]; then
+        ip link set $IFACE type can bitrate $BITRATE fd on dbitrate $DBITRATE
+    else
+        ip link set $IFACE type can bitrate $BITRATE
+    fi
+    
+    # Bring interface up
+    ip link set $IFACE up
+}
+
+echo "Configuring CAN interfaces (Bitrate: $BITRATE, FD: $FD_ON)..."
+
+setup_can can0 && echo "can0 configured successfully." || echo "can0 not found or failed to configure."
+setup_can can1 && echo "can1 configured successfully." || echo "can1 not found or failed to configure."
+
+exit 0

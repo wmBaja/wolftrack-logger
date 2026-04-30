@@ -1,0 +1,13 @@
+[Unit]
+Description=Bring up CAN Interfaces
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash {{WORKING_DIR}}/scripts/bring_can_up.sh
+ExecStop=-/sbin/ip link set can0 down
+ExecStop=-/sbin/ip link set can1 down
+
+[Install]
+WantedBy=multi-user.target

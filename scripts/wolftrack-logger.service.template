@@ -1,0 +1,16 @@
+[Unit]
+Description=Wolftrack Logger Service
+After=network.target can0-setup.service
+
+[Service]
+Type=simple
+User={{USER}}
+WorkingDirectory={{WORKING_DIR}}
+ExecStart={{WORKING_DIR}}/.venv/bin/python src/app.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
