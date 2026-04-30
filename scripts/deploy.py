@@ -25,7 +25,7 @@ def create_archive(source_dir, archive_path):
     print_step(f"Creating deployment archive from {source_dir}...")
     
     # Exclude common dev/unnecessary files
-    excludes = {'.git', '.venv', '__pycache__', '.idea', '.vscode', 'logs', 'app_logs', archive_path.name}
+    excludes = {'.git', '.gitignore', '.venv', '__pycache__', '.idea', '.vscode', 'logs', 'app_logs', 'build', archive_path.name}
     
     def tar_filter(tarinfo):
         path = Path(tarinfo.name)
@@ -41,10 +41,12 @@ def create_archive(source_dir, archive_path):
 def deploy(target_ssh, is_setup):
     project_dir = Path(__file__).parent.parent.absolute()
     project_name = project_dir.name
+    build_dir = Path.joinpath(project_dir, 'build')
     archive_name = f"{project_name}_deploy.tar.gz"
-    archive_path = project_dir / archive_name
+    archive_path = build_dir / archive_name
     remote_tmp = f"/tmp/{archive_name}"
     remote_dest = f"/home/{target_ssh.split('@')[0]}/{project_name}" if '@' in target_ssh else f"~/{project_name}"
+    Path(build_dir).mkdir(exist_ok=True)
 
     try:
         # 1. Package the project
