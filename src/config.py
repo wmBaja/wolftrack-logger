@@ -51,7 +51,6 @@ class CANLogConfig:
     
     output_dir: str = './logs'
     dbc_dir: str = './dbc'
-    max_file_size_mb: int = 100
     compression: int = 2  # Log compression level (0=none, 1=deflate, 2=transposition+deflate)
     buffer_size: int = 10000  # Message queue size
     default_filename_template: str = 'log_%T.blf'  # Default log file naming template
@@ -62,7 +61,6 @@ class CANLogConfig:
         return cls(
             output_dir=os.getenv('LOG_OUTPUT_DIR', './logs'),
             dbc_dir=os.getenv('DBC_DIR', './dbc_files'),
-            max_file_size_mb=int(os.getenv('LOG_MAX_FILE_SIZE_MB', '100')),
             compression=int(os.getenv('LOG_COMPRESSION', '2')),
             buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000')),
             default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.blf')
