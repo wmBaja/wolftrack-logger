@@ -58,8 +58,6 @@ def register_routes(
             - 500: System is unhealthy (with error details)
         """
         try:
-            from src.can_interface import CANInterface
-
             status = {
                 'status': 'healthy',
                 'session': session_manager.is_active(),
