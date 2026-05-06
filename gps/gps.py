@@ -6,10 +6,13 @@ load_dotenv(find_dotenv())
 
 can_channel = os.getenv('CAN_CHANNEL', 'can0')
 can_interface = os.getenv('CAN_INTERFACE', 'socketcan')
+can_fd = os.getenv('CAN_FD', 'false').lower() == 'true'
+is_extended_id = os.getenv('CAN_EXTENDED_ID', 'false').lower() == 'true'
+bitrate_switch = os.getenv('CAN_BITRATE_SWITCH', str(can_fd)).lower() == 'true'
 
 gps = serial.Serial(port="/dev/serial0", baudrate=115200, timeout=1)
 sio = io.TextIOWrapper(io.BufferedRWPair(gps, gps))
-bus = can.interface.Bus(channel=can_channel, interface=can_interface)
+bus = can.interface.Bus(channel=can_channel, interface=can_interface, fd=can_fd)
 
 while True:
     try:
@@ -32,14 +35,31 @@ while True:
             if msg.lon_dir == 'W': lon_deg = -lon_deg
             lat = int(lat_deg * 1e7)
             lon = int(lon_deg * 1e7)
+            
+            # Speed is given in knots, convert to km/h and scale by 100
+            speed_knots = float(msg.spd_over_grnd) if msg.spd_over_grnd else 0.0
+            speed = int(speed_knots * 1.852 * 100)
         else:
             lat = 0
             lon = 0
+            speed = 0
 
-        data = lat.to_bytes(4, 'little', signed=True) + lon.to_bytes(4, 'little', signed=True)
-        can_msg = can.Message(arbitration_id=0x100, data=data, is_extended_id=False)
+        # Combined 12-byte CAN FD message: lat (4B) + lon (4B) + speed (4B)
+        data = (
+            lat.to_bytes(4, 'little', signed=True) +
+            lon.to_bytes(4, 'little', signed=True) +
+            speed.to_bytes(4, 'little', signed=True)
+        )
+        can_msg = can.Message(
+            arbitration_id=0x500,
+            data=data,
+            is_extended_id=is_extended_id,
+            is_fd=can_fd,
+            bitrate_switch=bitrate_switch
+        )
         bus.send(can_msg, timeout=0.1)
-        print(f"Sent: lat={lat/1e7:.6f}, lon={lon/1e7:.6f}")
+
+        print(f"Sent: lat={lat/1e7:.6f}, lon={lon/1e7:.6f}, speed={speed/100:.2f} km/h")
 
     except pynmea2.ParseError:
         continue
