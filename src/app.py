@@ -5,6 +5,7 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 import signal
+import socket
 import sys
 
 from config import AppConfig
@@ -117,9 +118,14 @@ class CANLoggerApp:
             self.flask_app,
             self.session_manager,
             self.dbc_manager,
-            self.config.canlog
+            self.config.canlog,
+            self.config,
         )
         logger.info("API routes registered")
+
+        self.zeroconf = None
+        self.mdns_info = None
+        self._register_mdns_service()
 
         # Setup signal handlers for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -183,6 +189,13 @@ class CANLoggerApp:
                 logger.info("Stopping ZMQ stream...")
                 self.stream_listener.stop()
 
+            if self.zeroconf and self.mdns_info:
+                logger.info("Stopping mDNS advertisement...")
+                self.zeroconf.unregister_service(self.mdns_info)
+                self.zeroconf.close()
+                self.zeroconf = None
+                self.mdns_info = None
+
             # Disconnect CAN interface
             if self.can_interface.is_connected():
                 logger.info("Disconnecting CAN interface...")
@@ -200,6 +213,58 @@ class CANLoggerApp:
         logger.info("Received shutdown signal")
         self.cleanup()
         sys.exit(0)
+
+    def _register_mdns_service(self):
+        """Advertise the DAQ Flask API over mDNS when the dependency is available."""
+        try:
+            from zeroconf import IPVersion, ServiceInfo, Zeroconf
+        except ImportError:
+            logger.warning("zeroconf is not installed. mDNS discovery is disabled.")
+            return
+        except Exception as e:
+            logger.warning(f"Unable to import zeroconf: {e}")
+            return
+
+        address = self._resolve_lan_ip()
+        if not address:
+            logger.warning("Could not resolve a LAN IP for mDNS advertisement.")
+            return
+
+        service_type = "_wolftrack-daq._tcp.local."
+        service_name = f"{socket.gethostname()} {self.config.can.channel}.{service_type}"
+        properties = {
+            b"api_version": b"1",
+            b"stream_endpoint_path": b"/api/stream-endpoint",
+        }
+
+        try:
+            self.zeroconf = Zeroconf(ip_version=IPVersion.V4Only)
+            self.mdns_info = ServiceInfo(
+                type_=service_type,
+                name=service_name,
+                addresses=[socket.inet_aton(address)],
+                port=self.config.flask.port,
+                properties=properties,
+                server=f"{socket.gethostname()}.local.",
+            )
+            self.zeroconf.register_service(self.mdns_info)
+            logger.info(f"mDNS service registered at {address}:{self.config.flask.port}")
+        except Exception as e:
+            logger.warning(f"Failed to register mDNS service: {e}")
+            if self.zeroconf:
+                self.zeroconf.close()
+            self.zeroconf = None
+            self.mdns_info = None
+
+    def _resolve_lan_ip(self) -> str | None:
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            probe.connect(("8.8.8.8", 80))
+            return probe.getsockname()[0]
+        except OSError:
+            return None
+        finally:
+            probe.close()
 
 
 def create_app():
