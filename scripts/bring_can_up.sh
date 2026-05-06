@@ -47,7 +47,25 @@ setup_can() {
 
 echo "Configuring CAN interfaces (Bitrate: $BITRATE, FD: $FD_ON)..."
 
-setup_can can0 && echo "can0 configured successfully." || echo "can0 not found or failed to configure."
-setup_can can1 && echo "can1 configured successfully." || echo "can1 not found or failed to configure."
+FOUND_IFACE=false
+
+setup_can can0 && { echo "can0 configured successfully."; FOUND_IFACE=true; } || echo "can0 not found or failed to configure."
+setup_can can1 && { echo "can1 configured successfully."; FOUND_IFACE=true; } || echo "can1 not found or failed to configure."
+
+if [ "$FOUND_IFACE" = false ]; then
+    echo "No physical CAN interface found. Falling back to virtual CAN (vcan0)..."
+    
+    # Load the vcan kernel module if not already loaded
+    if ! lsmod | grep -q "^vcan"; then
+        modprobe vcan || { echo "ERROR: Failed to load vcan module. Cannot set up virtual CAN."; exit 1; }
+    fi
+    
+    # Create vcan0 if it doesn't already exist
+    if ! ip link show vcan0 > /dev/null 2>&1; then
+        ip link add dev vcan0 type vcan || { echo "ERROR: Failed to create vcan0."; exit 1; }
+    fi
+    
+    ip link set vcan0 up && echo "vcan0 configured successfully (virtual CAN)." || { echo "ERROR: Failed to bring up vcan0."; exit 1; }
+fi
 
 exit 0
