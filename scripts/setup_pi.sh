@@ -82,6 +82,20 @@ dtoverlay=i2c-rtc,ds3231
 EOF
 fi
 
+# UART for GPS
+if ! grep -q "enable_uart=1" "$CONFIG_TXT"; then
+    echo "Enabling UART for GPS module..."
+    cat << EOF >> "$CONFIG_TXT"
+
+# Enable UART for GPS module on /dev/serial0
+enable_uart=1
+EOF
+fi
+
+# Disable the serial console so /dev/serial0 is free for the GPS
+echo "Disabling serial console on /dev/serial0..."
+raspi-config nonint do_serial_cons 1
+
 # 5. Systemd Services
 echo -e "\n${BLUE}[5/6] Setting up Systemd Services...${NC}"
 
