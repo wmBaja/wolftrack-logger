@@ -102,6 +102,15 @@ sed -e "s|{{WORKING_DIR}}|$(pwd)|g" \
 systemctl daemon-reload
 systemctl enable wolftrack-logger.service
 
+# Wolftrack GPS Service
+echo "Installing Wolftrack GPS service..."
+sed -e "s|{{WORKING_DIR}}|$(pwd)|g" \
+    -e "s|{{USER}}|$SUDO_USER|g" \
+    scripts/wolftrack-gps.service.template > /etc/systemd/system/wolftrack-gps.service
+
+systemctl daemon-reload
+systemctl enable wolftrack-gps.service
+
 # 6. Access Point Setup
 echo -e "\n${BLUE}[6/6] Configuring Wi-Fi Access Point...${NC}"
 echo "Setting up 'Wolftrack' open Access Point using NetworkManager..."

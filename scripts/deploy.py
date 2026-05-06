@@ -71,11 +71,11 @@ def deploy(target_ssh, is_setup):
             run_cmd(["ssh", "-t", target_ssh, setup_cmd]) # -t allocates a pseudo-TTY for sudo prompts
             print_success("Setup complete! The Pi should now reboot into Access Point mode.")
         else:
-            print_step("Restarting the logger service...")
-            # Restart the service and show the status/latest logs so the user knows it succeeded
-            restart_cmd = f"sudo systemctl restart {project_name} && echo '' && sudo systemctl status {project_name} --no-pager"
+            print_step("Restarting the logger and GPS services...")
+            # Restart the services and show the status/latest logs so the user knows it succeeded
+            restart_cmd = f"sudo systemctl restart {project_name} wolftrack-gps && echo '' && sudo systemctl status {project_name} wolftrack-gps --no-pager"
             run_cmd(["ssh", "-t", target_ssh, restart_cmd])
-            print_success(f"Update complete! {project_name} service restarted.")
+            print_success(f"Update complete! {project_name} and wolftrack-gps services restarted.")
 
     finally:
         # Cleanup local archive
