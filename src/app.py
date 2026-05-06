@@ -12,6 +12,7 @@ from logging_config import setup_logging, get_logger
 from can_interface import CANInterface
 from dbc_manager import DBCManager
 from session_manager import SessionManager
+from hardware_manager import HardwareManager
 from api.routes import register_routes
 
 
@@ -83,6 +84,12 @@ class CANLoggerApp:
             self.can_interface,
             self.dbc_manager,
             self.config.canlog
+        )
+
+        # Hardware Manager
+        self.hardware_manager = HardwareManager(
+            self.config.hardware,
+            self.session_manager
         )
 
         # ZMQ Live Stream Listener
@@ -161,6 +168,11 @@ class CANLoggerApp:
         logger.info("="*70)
 
         try:
+            # Stop hardware manager
+            if getattr(self, 'hardware_manager', None):
+                logger.info("Cleaning up hardware controls...")
+                self.hardware_manager.cleanup()
+
             # Stop any active session
             if self.session_manager.is_active():
                 logger.info("Stopping active session...")

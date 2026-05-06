@@ -147,6 +147,25 @@ class FlaskConfig:
                 f"enable_cors={self.enable_cors})")
 
 @dataclass
+class HardwareConfig:
+    """Hardware configuration for physical buttons and LEDs"""
+    
+    enabled: bool = True
+    button_pin: int = 5
+    led_pin: int = 6
+    
+    @classmethod
+    def from_env(cls) -> 'HardwareConfig':
+        return cls(
+            enabled=os.getenv('HW_ENABLED', 'true').lower() == 'true',
+            button_pin=int(os.getenv('HW_BUTTON_PIN', '5')),
+            led_pin=int(os.getenv('HW_LED_PIN', '6'))
+        )
+        
+    def __repr__(self) -> str:
+        return f"HardwareConfig(enabled={self.enabled}, button_pin={self.button_pin}, led_pin={self.led_pin})"
+
+@dataclass
 class AppConfig:
     """Main application configuration"""
     
@@ -155,6 +174,7 @@ class AppConfig:
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     flask: FlaskConfig = field(default_factory=FlaskConfig)
     zmq: ZMQConfig = field(default_factory=ZMQConfig)
+    hardware: HardwareConfig = field(default_factory=HardwareConfig)
     
     @classmethod
     def from_env(cls) -> 'AppConfig':
@@ -164,7 +184,8 @@ class AppConfig:
             canlog=CANLogConfig.from_env(),
             appLog=AppLogConfig.from_env(),
             flask=FlaskConfig.from_env(),
-            zmq=ZMQConfig.from_env()
+            zmq=ZMQConfig.from_env(),
+            hardware=HardwareConfig.from_env()
         )
     
     @classmethod
@@ -175,13 +196,15 @@ class AppConfig:
         app_log_config = AppLogConfig(**config_dict.get('appLog', {}))
         flask_config = FlaskConfig(**config_dict.get('flask', {}))
         zmq_config = ZMQConfig(**config_dict.get('zmq', {}))
+        hardware_config = HardwareConfig(**config_dict.get('hardware', {}))
         
         return cls(
             can=can_config,
             canlog=log_config,
             appLog=app_log_config,
             flask=flask_config,
-            zmq=zmq_config
+            zmq=zmq_config,
+            hardware=hardware_config
         )
     
     def to_dict(self) -> dict:
@@ -220,11 +243,16 @@ class AppConfig:
             'zmq': {
                 'enabled': self.zmq.enabled,
                 'port': self.zmq.port
+            },
+            'hardware': {
+                'enabled': self.hardware.enabled,
+                'button_pin': self.hardware.button_pin,
+                'led_pin': self.hardware.led_pin
             }
         }
 
     def __repr__(self) -> str:
-        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask}, zmq={self.zmq})"
+        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask}, zmq={self.zmq}, hardware={self.hardware})"
 
 # ============================================================================
 # Example Usage
