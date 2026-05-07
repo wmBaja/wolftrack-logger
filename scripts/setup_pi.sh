@@ -18,7 +18,7 @@ fi
 # 1. System Dependencies
 echo -e "\n${BLUE}[1/6] Installing system dependencies...${NC}"
 apt-get update
-apt-get install -y curl git i2c-tools can-utils network-manager
+apt-get install -y curl git i2c-tools can-utils network-manager swig libgpiod-dev liblgpio-dev python3-dev
 
 # 2. Python Setup via uv
 echo -e "\n${BLUE}[2/6] Setting up Python environment...${NC}"

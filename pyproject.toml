@@ -3,7 +3,7 @@ name = "wolftrack-logger"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "asammdf>=8.6.10",
     "cantools>=40.7.1",
@@ -11,9 +11,12 @@ dependencies = [
     "flask-cors>=6.0.1",
     "pynmea2>=1.19.0",
     "pyserial>=3.5",
+    "gpiozero>=2.0.1",
     "python-can>=4.6.1",
     "python-dotenv>=1.1.1",
     "pyzmq>=27.1.0",
+    "rpi-lgpio>=0.6",
+    "zeroconf>=0.148.0",
 ]
 
 [dependency-groups]

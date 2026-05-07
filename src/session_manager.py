@@ -2,7 +2,7 @@ import re
 import can
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Callable
 import time
 from threading import Lock
 
@@ -52,8 +52,19 @@ class SessionManager:
         
         # Session statistics
         self._start_time: Optional[datetime] = None
+        
+        self._on_start_callbacks: List[Callable] = []
+        self._on_stop_callbacks: List[Callable] = []
 
         logger.debug("SessionManager initialized")
+
+    def register_on_start(self, callback: Callable) -> None:
+        """Register a callback to be called when a session starts."""
+        self._on_start_callbacks.append(callback)
+
+    def register_on_stop(self, callback: Callable) -> None:
+        """Register a callback to be called when a session stops."""
+        self._on_stop_callbacks.append(callback)
 
     def start(self, filename_template: Optional[str] = None) -> Tuple[bool, str]:
         with self._state_lock:
@@ -102,6 +113,14 @@ class SessionManager:
                 self._is_active = True
 
                 logger.info("Session started successfully")
+                
+                # Trigger callbacks
+                for callback in self._on_start_callbacks:
+                    try:
+                        callback()
+                    except Exception as e:
+                        logger.error(f"Error in on_start callback: {e}")
+                        
                 return True, f"Session started: {self._session_name}"
 
             except Exception as e:
@@ -146,6 +165,13 @@ class SessionManager:
                 self.can_interface.send_message(
                     self.can_interface.config.daq_messages['standby']
                 )
+
+                # Trigger callbacks
+                for callback in self._on_stop_callbacks:
+                    try:
+                        callback()
+                    except Exception as e:
+                        logger.error(f"Error in on_stop callback: {e}")
 
                 return True, message
 
