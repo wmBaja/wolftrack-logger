@@ -37,7 +37,7 @@ export PATH="$USER_HOME/.local/bin:$PATH"
 # Run uv sync
 echo "Syncing dependencies with uv..."
 # Run as the regular user to avoid creating root-owned files in the project
-sudo -u "$SUDO_USER" bash -c "export PATH=\"$USER_HOME/.local/bin:\$PATH\" && cd \"$(pwd)\" && uv sync"
+sudo -u "$SUDO_USER" bash -c "export PATH=\"$USER_HOME/.local/bin:\$PATH\" && cd \"$(pwd)\" && uv sync --no-dev --group rpi"
 
 # 3. Environment Variables
 echo -e "\n${BLUE}[3/6] Configuring environment variables...${NC}"
