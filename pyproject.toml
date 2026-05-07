@@ -14,6 +14,7 @@ dependencies = [
     "python-dotenv>=1.1.1",
     "pyzmq>=27.1.0",
     "rpi-lgpio>=0.6",
+    "zeroconf>=0.148.0",
 ]
 
 [dependency-groups]
