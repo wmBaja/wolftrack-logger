@@ -91,13 +91,13 @@ class SessionManager:
                 if not self.can_interface.is_connected():
                     self.can_interface.connect()
 
-                self.can_interface.send_message(
-                    self.can_interface.config.daq_messages['wake_up']
-                )
-                logger.debug(f"Sending wake-up message: {self.can_interface.config.daq_messages['wake_up']}")
+                # self.can_interface.send_message(
+                #     self.can_interface.config.daq_messages['wake_up']
+                # )
+                # logger.debug(f"Sending wake-up message: {self.can_interface.config.daq_messages['wake_up']}")
                 
                 # Small delay to ensure wake-up is processed
-                time.sleep(0.1)
+                # time.sleep(0.1)
 
                 # Create logger
                 self._logger = can.Logger(
@@ -162,9 +162,9 @@ class SessionManager:
                 logger.info(f"Output file: {self._output_file}, "
                             f"File size: {file_size} bytes")
 
-                self.can_interface.send_message(
-                    self.can_interface.config.daq_messages['standby']
-                )
+                # self.can_interface.send_message(
+                #     self.can_interface.config.daq_messages['standby']
+                # )
 
                 # Trigger callbacks
                 for callback in self._on_stop_callbacks:
