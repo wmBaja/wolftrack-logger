@@ -51,7 +51,6 @@ class CANLogConfig:
     
     output_dir: str = './logs'
     dbc_dir: str = './dbc'
-    max_file_size_mb: int = 100
     compression: int = 2  # Log compression level (0=none, 1=deflate, 2=transposition+deflate)
     buffer_size: int = 10000  # Message queue size
     default_filename_template: str = 'log_%T.blf'  # Default log file naming template
@@ -62,7 +61,6 @@ class CANLogConfig:
         return cls(
             output_dir=os.getenv('LOG_OUTPUT_DIR', './logs'),
             dbc_dir=os.getenv('DBC_DIR', './dbc_files'),
-            max_file_size_mb=int(os.getenv('LOG_MAX_FILE_SIZE_MB', '100')),
             compression=int(os.getenv('LOG_COMPRESSION', '2')),
             buffer_size=int(os.getenv('LOG_BUFFER_SIZE', '10000')),
             default_filename_template=os.getenv('LOG_FILE_TEMPLATE', 'log_%T.blf')
@@ -109,6 +107,23 @@ class AppLogConfig:
                 f"log_format={self.log_format})")
 
 @dataclass
+class ZMQConfig:
+    """ZMQ Live Streaming Configuration"""
+    
+    enabled: bool = True
+    port: int = 5555
+    
+    @classmethod
+    def from_env(cls) -> 'ZMQConfig':
+        return cls(
+            enabled=os.getenv('ZMQ_ENABLED', 'true').lower() == 'true',
+            port=int(os.getenv('ZMQ_PORT', '5555'))
+        )
+        
+    def __repr__(self) -> str:
+        return f"ZMQConfig(enabled={self.enabled}, port={self.port})"
+
+@dataclass
 class FlaskConfig:
     """Flask application configuration"""
     
@@ -132,6 +147,25 @@ class FlaskConfig:
                 f"enable_cors={self.enable_cors})")
 
 @dataclass
+class HardwareConfig:
+    """Hardware configuration for physical buttons and LEDs"""
+    
+    enabled: bool = True
+    button_pin: int = 5
+    led_pin: int = 6
+    
+    @classmethod
+    def from_env(cls) -> 'HardwareConfig':
+        return cls(
+            enabled=os.getenv('HW_ENABLED', 'true').lower() == 'true',
+            button_pin=int(os.getenv('HW_BUTTON_PIN', '5')),
+            led_pin=int(os.getenv('HW_LED_PIN', '6'))
+        )
+        
+    def __repr__(self) -> str:
+        return f"HardwareConfig(enabled={self.enabled}, button_pin={self.button_pin}, led_pin={self.led_pin})"
+
+@dataclass
 class AppConfig:
     """Main application configuration"""
     
@@ -139,6 +173,8 @@ class AppConfig:
     canlog: CANLogConfig = field(default_factory=CANLogConfig)
     appLog: AppLogConfig = field(default_factory=AppLogConfig)
     flask: FlaskConfig = field(default_factory=FlaskConfig)
+    zmq: ZMQConfig = field(default_factory=ZMQConfig)
+    hardware: HardwareConfig = field(default_factory=HardwareConfig)
     
     @classmethod
     def from_env(cls) -> 'AppConfig':
@@ -147,7 +183,9 @@ class AppConfig:
             can=CANConfig.from_env(),
             canlog=CANLogConfig.from_env(),
             appLog=AppLogConfig.from_env(),
-            flask=FlaskConfig.from_env()
+            flask=FlaskConfig.from_env(),
+            zmq=ZMQConfig.from_env(),
+            hardware=HardwareConfig.from_env()
         )
     
     @classmethod
@@ -157,12 +195,16 @@ class AppConfig:
         log_config = CANLogConfig(**config_dict.get('log', {}))
         app_log_config = AppLogConfig(**config_dict.get('appLog', {}))
         flask_config = FlaskConfig(**config_dict.get('flask', {}))
+        zmq_config = ZMQConfig(**config_dict.get('zmq', {}))
+        hardware_config = HardwareConfig(**config_dict.get('hardware', {}))
         
         return cls(
             can=can_config,
             canlog=log_config,
             appLog=app_log_config,
-            flask=flask_config
+            flask=flask_config,
+            zmq=zmq_config,
+            hardware=hardware_config
         )
     
     def to_dict(self) -> dict:
@@ -197,11 +239,20 @@ class AppConfig:
                 'port': self.flask.port,
                 'debug': self.flask.debug,
                 'enable_cors': self.flask.enable_cors
+            },
+            'zmq': {
+                'enabled': self.zmq.enabled,
+                'port': self.zmq.port
+            },
+            'hardware': {
+                'enabled': self.hardware.enabled,
+                'button_pin': self.hardware.button_pin,
+                'led_pin': self.hardware.led_pin
             }
         }
 
     def __repr__(self) -> str:
-        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask})"
+        return f"AppConfig(can={self.can}, log={self.canlog}, appLog={self.appLog}, flask={self.flask}, zmq={self.zmq}, hardware={self.hardware})"
 
 # ============================================================================
 # Example Usage

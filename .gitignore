@@ -213,3 +213,5 @@ __marimo__/
 # CAN Logs
 logs/
 *.mf4
+
+build/

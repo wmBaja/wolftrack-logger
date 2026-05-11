@@ -11,6 +11,8 @@ The routes are registered dynamically via register_routes() function to allow
 dependency injection of managers and configuration.
 """
 
+import socket
+
 from flask import request, jsonify, send_file, Flask
 from pathlib import Path
 
@@ -29,7 +31,8 @@ def register_routes(
     app: Flask,
     session_manager,
     dbc_manager,
-    log_config
+    log_config,
+    app_config,
 ) -> None:
     """
     Register all API routes with the Flask application.
@@ -58,8 +61,6 @@ def register_routes(
             - 500: System is unhealthy (with error details)
         """
         try:
-            from src.can_interface import CANInterface
-
             status = {
                 'status': 'healthy',
                 'session': session_manager.is_active(),
@@ -75,6 +76,17 @@ def register_routes(
                 'status': 'unhealthy',
                 'error': str(e)
             }), 500
+
+    @app.route('/api/stream-endpoint', methods=['GET'])
+    def get_stream_endpoint():
+        """Return the client-routable ZMQ endpoint for dashboard live streaming."""
+        host = _resolve_client_routable_host(request)
+        return jsonify({
+            'transport': 'tcp',
+            'host': host,
+            'port': app_config.zmq.port,
+            'enabled': app_config.zmq.enabled
+        }), 200
 
     @app.route('/api/session/start', methods=['POST'])
     def start_session():
@@ -459,3 +471,21 @@ def _format_size(size_bytes: int) -> str:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
     return f"{size_bytes:.1f} PB"
+
+
+def _resolve_client_routable_host(req) -> str:
+    """Prefer the host the client used to reach Flask, then fall back to a local LAN IP."""
+    forwarded_host = req.headers.get('X-Forwarded-Host')
+    host_header = forwarded_host or req.host.split(':')[0]
+
+    if host_header and host_header not in {'0.0.0.0', '::', ''}:
+        return host_header
+
+    probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        probe.connect(('8.8.8.8', 80))
+        return probe.getsockname()[0]
+    except OSError:
+        return '127.0.0.1'
+    finally:
+        probe.close()
