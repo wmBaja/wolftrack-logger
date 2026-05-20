@@ -1,6 +1,7 @@
 [Unit]
 Description=Wolftrack Logger Service
-After=network.target can0-setup.service
+Wants=network-online.target
+After=network-online.target can0-setup.service
 
 [Service]
 Type=simple
