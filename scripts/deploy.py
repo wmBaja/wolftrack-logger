@@ -51,6 +51,8 @@ def create_archive(source_dir, archive_path):
         raw = fs_path.read_bytes().replace(b'\r\n', b'\n').replace(b'\r', b'\n')
         info = tar.gettarinfo(str(fs_path), arcname=arcname)
         info.size = len(raw)
+
+        info.mode |= (info.mode & 0o444) >> 2
         tar.addfile(info, io.BytesIO(raw))
 
     with tarfile.open(archive_path, "w:gz") as tar:
