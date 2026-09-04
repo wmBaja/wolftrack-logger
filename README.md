@@ -53,9 +53,9 @@ We have built a automated deployment system to install and update `wolftrack-log
 2. Make your code changes locally.
 3. Run the deploy script *without* the setup flag:
    ```bash
-   python scripts/deploy.py pi@<pi-ip-address>
+   python scripts/deploy.py pi@10.42.0.1
    ```
-   *This uses standard tools to push only the updated code over the local network and restart the logger service instantly. No internet connection is needed.*
+   *NetworkManager usually gives the Pi the `10.42.0.1` address while it is broadcasting the `Wolftrack` access point. This uses standard tools to push only the updated code over the local network and restart the logger service instantly. No internet connection is needed.*
 
 ---
 

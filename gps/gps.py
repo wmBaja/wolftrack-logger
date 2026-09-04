@@ -10,7 +10,7 @@ can_fd = os.getenv('CAN_FD', 'false').lower() == 'true'
 is_extended_id = os.getenv('CAN_EXTENDED_ID', 'false').lower() == 'true'
 bitrate_switch = os.getenv('CAN_BITRATE_SWITCH', str(can_fd)).lower() == 'true'
 
-gps = serial.Serial(port="/dev/serial0", baudrate=115200, timeout=1)
+gps = serial.Serial(port="/dev/serial0", baudrate=230400, timeout=1)
 sio = io.TextIOWrapper(io.BufferedRWPair(gps, gps))
 bus = can.interface.Bus(channel=can_channel, interface=can_interface, fd=can_fd)
 

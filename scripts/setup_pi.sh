@@ -99,31 +99,7 @@ raspi-config nonint do_serial_cons 1
 # 5. Systemd Services
 echo -e "\n${BLUE}[5/6] Setting up Systemd Services...${NC}"
 
-# CAN Interface Setup Service
-echo "Installing CAN network setup service..."
-chmod +x scripts/bring_can_up.sh
-sed -e "s|{{WORKING_DIR}}|$(pwd)|g" \
-    scripts/can0-setup.service.template > /etc/systemd/system/can0-setup.service
-systemctl daemon-reload
-systemctl enable can0-setup.service
-
-# Wolftrack Logger App Service
-echo "Installing Wolftrack Logger service..."
-sed -e "s|{{WORKING_DIR}}|$(pwd)|g" \
-    -e "s|{{USER}}|$SUDO_USER|g" \
-    scripts/wolftrack-logger.service.template > /etc/systemd/system/wolftrack-logger.service
-
-systemctl daemon-reload
-systemctl enable wolftrack-logger.service
-
-# Wolftrack GPS Service
-echo "Installing Wolftrack GPS service..."
-sed -e "s|{{WORKING_DIR}}|$(pwd)|g" \
-    -e "s|{{USER}}|$SUDO_USER|g" \
-    scripts/wolftrack-gps.service.template > /etc/systemd/system/wolftrack-gps.service
-
-systemctl daemon-reload
-systemctl enable wolftrack-gps.service
+bash scripts/install_services.sh "$(pwd)" "$SUDO_USER"
 
 # 6. Access Point Setup
 echo -e "\n${BLUE}[6/6] Configuring Wi-Fi Access Point...${NC}"
