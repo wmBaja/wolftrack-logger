@@ -26,6 +26,24 @@ from utils.exceptions import (
 
 logger = get_logger(__name__)
 
+LOG_FILE_EXTENSIONS = {'.blf', '.log'}
+
+
+def _validate_log_filename(filename: str) -> str | None:
+    """Return an error message unless *filename* is a managed log filename."""
+    if (
+        not isinstance(filename, str)
+        or not filename.strip()
+        or filename != filename.strip()
+        or '/' in filename
+        or '\\' in filename
+        or '..' in filename
+        or Path(filename).name != filename
+        or Path(filename).suffix not in LOG_FILE_EXTENSIONS
+    ):
+        return 'Filename must be a plain .blf or .log filename'
+    return None
+
 
 def register_routes(
     app: Flask,
@@ -377,9 +395,9 @@ def register_routes(
             - 500: Internal server error
         """
         try:
-            # Security: prevent path traversal attacks
-            if '..' in filename or '/' in filename or '\\' in filename:
-                return jsonify({'error': 'Invalid filename'}), 400
+            validation_error = _validate_log_filename(filename)
+            if validation_error:
+                return jsonify({'error': validation_error}), 400
 
             file_path = Path(log_config.output_dir).absolute() / filename
 
@@ -420,9 +438,9 @@ def register_routes(
             Cannot delete the file of an active logging session.
         """
         try:
-            # Security: prevent path traversal attacks
-            if '..' in filename or '/' in filename or '\\' in filename:
-                return jsonify({'error': 'Invalid filename'}), 400
+            validation_error = _validate_log_filename(filename)
+            if validation_error:
+                return jsonify({'error': validation_error}), 400
 
             # Safety: prevent deletion of active session file
             if session_manager.is_active():
@@ -447,6 +465,45 @@ def register_routes(
 
         except Exception as e:
             logger.error(f"Error deleting log: {e}", exc_info=True)
+            return jsonify({'error': 'Internal server error'}), 500
+
+    @app.route('/api/logs/<filename>', methods=['PATCH'])
+    def rename_log(filename: str):
+        """Rename an inactive managed log file."""
+        try:
+            validation_error = _validate_log_filename(filename)
+            if validation_error:
+                return jsonify({'error': validation_error}), 400
+
+            payload = request.get_json(silent=True)
+            new_name = payload.get('new_name') if isinstance(payload, dict) else None
+            validation_error = _validate_log_filename(new_name)
+            if validation_error:
+                return jsonify({'error': validation_error}), 400
+
+            if session_manager.is_active():
+                current_file = Path(session_manager._output_file).name
+                if filename == current_file:
+                    return jsonify({'error': 'Cannot rename active session file'}), 400
+
+            log_dir = Path(log_config.output_dir)
+            file_path = log_dir / filename
+            new_file_path = log_dir / new_name
+            if not file_path.exists():
+                return jsonify({'error': 'File not found'}), 404
+            if new_file_path.exists():
+                return jsonify({'error': 'A log file with that name already exists'}), 409
+
+            file_path.rename(new_file_path)
+            logger.info(f"Renamed log file: {filename} -> {new_name}")
+            return jsonify({
+                'success': True,
+                'old_name': filename,
+                'new_name': new_name,
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Error renaming log: {e}", exc_info=True)
             return jsonify({'error': 'Internal server error'}), 500
 
 
